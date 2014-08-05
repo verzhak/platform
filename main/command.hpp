@@ -6,18 +6,20 @@
 
 class CCommand
 {
-	const QHostAddress __card_address, __arinc_address;
-	const uint16_t __card_port, __arinc_port;
 	const unsigned max_packet_size = 4096;
-	QUdpSocket sock;
+	const int delay = 1000, correlation_delay = 30000, arinc_delay = -1;;
+	unsigned ind;
+	QTcpSocket card_sock, arinc_sock;
+
+	void send_image(const Mat & img);
+	void send_orientation(const QMap<QString, QVariant> & metadata);
+	void correlation();
 
 	public:
 
 		CCommand(const QHostAddress card_address, const uint16_t card_port, const QHostAddress arinc_address, const uint16_t arinc_port);
 
-		void send_image(const Mat & img);
-		void send_orientation(const QMap<QString, QVariant> & metadata);
-		void correlation();
+		bool operator()(const Mat & img, const QMap<QString, QVariant> & metadata);
 };
 
 #endif

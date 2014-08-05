@@ -9,7 +9,8 @@
 #include <opencv2/opencv.hpp>
 #include <QtCore>
 #include <QXmlStreamReader>
-#include <QUdpSocket>
+#include <QTcpServer>
+#include <QTcpSocket>
 #include <QMap>
 
 using namespace cv;

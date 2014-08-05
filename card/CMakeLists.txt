@@ -1,14 +1,9 @@
 
 project(card)
 
-set(CMAKE_AUTOMOC ON)
+pkg_check_modules(PC_COMBINE QUIET combine)
+include_directories(${PC_COMBINE_INCLUDE_DIRS})
 
-set(sources main_loop.cpp)
-
-add_executable(card_x86_64 main_x86_64.cpp ${sources})
-qt5_use_modules(card_x86_64 Core Network Xml)
-target_link_libraries(card_x86_64 base ${PC_AMV_LIBRARIES})
-
-add_executable(card_mips main_mips.cpp ${sources})
-target_link_libraries(card_mips base ${PC_AMV_LIBRARIES})
+add_executable(card main.cpp main_loop.cpp map.cpp pci.cpp)
+target_link_libraries(card base ${PC_AMV_LIBRARIES} ${PC_COMBINE_LIBRARIES} glapi ${OpenCV_LIBS})
 

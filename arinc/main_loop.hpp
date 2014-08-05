@@ -8,9 +8,11 @@ class CMainLoop : public QCoreApplication
 {
 	Q_OBJECT
 
-	const unsigned wait_for_ready_read = 1000;
-	QUdpSocket sock;
-	Mat img;
+	const unsigned delay = 1000;
+	unsigned arinc_ind, height, width;
+	shared_ptr<uint8_t> img;
+	QTcpServer server_sock;
+	QTcpSocket * client_sock;
 
 	void read_packet(void * packet, const unsigned size);
 	void image();
@@ -21,12 +23,16 @@ class CMainLoop : public QCoreApplication
 
 	public slots:
 
+		void new_connection();
 		void command();
-		void todo(Mat todo_img);
+		void error(QAbstractSocket::SocketError err);
+		void __arinc_write(const uint8_t * img, const unsigned height, const unsigned width);
+		void __arinc_done();
 
 	signals:
 
-		void get_image(Mat img);
+		void arinc_write(const uint8_t * img, const unsigned height, const unsigned width);
+		void arinc_done();
 };
 
 #endif

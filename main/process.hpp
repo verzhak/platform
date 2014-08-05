@@ -3,7 +3,7 @@
 #define PROCESS_HPP
 
 #include "all.hpp"
-#include "interface.hpp"
+#include "modules/interface.hpp"
 
 class CProcess
 {
@@ -12,7 +12,7 @@ class CProcess
 
 	decltype(process_init) * process_init_fun;
 	decltype(process_destroy) * process_destroy_fun;
-	decltype(process1) * process_fun;
+	decltype(process_memory) * process_memory_fun;
 	decltype(process_opencv) * process_opencv_fun;
 
 	public:

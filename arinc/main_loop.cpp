@@ -2,13 +2,41 @@
 #include "main_loop.hpp"
 
 CMainLoop::CMainLoop(int argc, char * argv[], const uint16_t port) :
-	QCoreApplication(argc, argv)
+	QCoreApplication(argc, argv), height(0), width(0), client_sock(NULL)
 {
-	if(! sock.bind(port))
-		throw_;
+	throw_if(! server_sock.listen(QHostAddress::AnyIPv4, port));
 
-	connect(& sock, SIGNAL(readyRead()), this, SLOT(command()));
-	connect(this, SIGNAL(get_image(Mat)), this, SLOT(todo(Mat)));
+	connect(& server_sock, SIGNAL(newConnection()), this, SLOT(new_connection()));
+	connect(this, SIGNAL(arinc_write(const uint8_t *, const unsigned, const unsigned)), this, SLOT(__arinc_write(const uint8_t *, const unsigned, const unsigned)));
+	connect(this, SIGNAL(arinc_done()), this, SLOT(__arinc_done()));
+}
+
+void CMainLoop::new_connection()
+{
+	if(client_sock == NULL)
+	{
+		throw_null(client_sock = server_sock.nextPendingConnection());
+
+		connect(client_sock, SIGNAL(error(QAbstractSocket::SocketError)), this, SLOT(error(QAbstractSocket::SocketError)));
+		connect(client_sock, SIGNAL(readyRead()), this, SLOT(command()));
+	}
+}
+
+void CMainLoop::error(QAbstractSocket::SocketError err)
+{
+	if(err == QAbstractSocket::RemoteHostClosedError)
+	{
+		client_sock->disconnect(SIGNAL(readyRead()));
+		client_sock = NULL;
+	}
+}
+
+void CMainLoop::read_packet(void * packet, const unsigned size)
+{
+	while(client_sock->bytesAvailable() < size)
+		client_sock->waitForReadyRead(delay);
+
+	throw_if(client_sock->read((char *) packet, size) != size);
 }
 
 void CMainLoop::command()
@@ -17,14 +45,14 @@ void CMainLoop::command()
 	{
 		SCardHeaderPacket header;
 
-		throw_if(sock.readDatagram((char *) & header, sizeof(header)) != sizeof(header));
-		qDebug() << header.mark << header.command;
+		read_packet(& header, sizeof(header));
 		throw_if(header.mark != CARD_MARK);
 
 		switch(header.command)
 		{
 			case CARD_COMMAND_IMAGE:
 			{
+				arinc_ind = header.ind;
 				image();
 
 				break;
@@ -39,12 +67,6 @@ void CMainLoop::command()
 	}
 }
 
-void CMainLoop::read_packet(void * packet, const unsigned size)
-{
-	throw_if(sock.readDatagram((char *) packet, size) != size);
-	throw_if(* ((uint32_t *) packet) != CARD_MARK);
-}
-
 void CMainLoop::image()
 {
 	try
@@ -52,34 +74,31 @@ void CMainLoop::image()
 		SCardImagePacket packet;
 
 		read_packet(& packet, sizeof(packet));
+		throw_if(packet.mark != CARD_MARK);
 
-		const unsigned height = packet.height, width = packet.width, block_size = packet.block_size;
-		const unsigned buf_size = height * width;
+		const unsigned block_size = packet.block_size;
+		const unsigned buf_size = packet.height * packet.width;
 		const unsigned blocks_num_1 = buf_size / block_size, last_block_size = buf_size % block_size;
 		unsigned v;
-		shared_ptr<uint8_t> buf(new uint8_t[buf_size], std::default_delete<uint8_t[]>());
-		uint8_t * ptr = buf.get();
+		uint8_t * ptr;
 
-		auto get_block = [ this ](uint8_t * ptr, const unsigned block_size)
+		if(height != packet.height || width != packet.width)
 		{
-			throw_if(! sock.waitForReadyRead(wait_for_ready_read));
-			throw_if(sock.readDatagram((char *) ptr, block_size) != block_size);
-		};
+			img.reset(new uint8_t[buf_size], std::default_delete<uint8_t[]>());
 
-		throw_null(ptr);
+			height = packet.height;
+			width = packet.width;
+		}
+
+		throw_null(ptr = img.get());
 
 		for(v = 0; v < blocks_num_1; v++)
-			get_block(ptr + v * block_size, block_size);
+			read_packet(ptr + v * block_size, block_size);
 
 		if(last_block_size)
-			get_block(ptr + blocks_num_1 * block_size, last_block_size);
+			read_packet(ptr + blocks_num_1 * block_size, last_block_size);
 
-		img.create(height, width, CV_8U);
-
-		for(v = 0; v < height; v++)
-			memcpy(img.data + img.step[0] * v, ptr + v * width, width);
-
-		emit get_image(img.clone());
+		emit arinc_write(img.get(), height, width);
 	}
 	catch(...)
 	{
@@ -87,8 +106,32 @@ void CMainLoop::image()
 	}
 }
 
-void CMainLoop::todo(Mat todo_img)
+void CMainLoop::__arinc_done()
 {
-	imshow("todo_img", todo_img);
+	try
+	{
+		const SCardHeaderPacket header = { .mark = CARD_MARK, .command = CARD_COMMAND_ARINC_DONE, .ind = arinc_ind };
+
+		throw_if(client_sock->write((const char *) & header, sizeof(header)) != sizeof(header));
+	}
+	catch(...)
+	{
+		;
+	}
+}
+
+void CMainLoop::__arinc_write(const uint8_t * img, const unsigned height, const unsigned width)
+{
+	unsigned v;
+	Mat __img;
+
+	__img.create(height, width, CV_8U);
+
+	for(v = 0; v < height; v++)
+		memcpy(__img.data + __img.step[0] * v, img + v * width, width);
+
+	imshow("todo_img", __img);
+
+	emit arinc_done();
 }
 

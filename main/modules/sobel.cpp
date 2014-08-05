@@ -1,9 +1,9 @@
 
 #include <cstdint>
 #include <opencv2/opencv.hpp>
-#include <amv/amv.hpp>
-
-#include "main/interface.hpp"
+#include "interface.hpp"
+#include "exception.hpp"
+#include "contour/contour.hpp"
 
 using namespace std;
 using namespace cv;
@@ -16,7 +16,7 @@ int process_init(int * is_opencv_interface)
 	{
 		throw_null(is_opencv_interface);
 
-		* is_opencv_interface = 0;
+		* is_opencv_interface = 1;
 	}
 	catch(...)
 	{
@@ -31,7 +31,7 @@ int process_destroy()
 	return 0;
 }
 
-int process1(const uint8_t * src, uint8_t * dst, const unsigned height, const unsigned width, const unsigned channels)
+int process_memory(const uint8_t * src, uint8_t * dst, const unsigned height, const unsigned width, const unsigned channels)
 {
 	int ret = 0;
 
@@ -39,6 +39,8 @@ int process1(const uint8_t * src, uint8_t * dst, const unsigned height, const un
 	{
 		unsigned v, u;
 		Mat __src(height, width, CV_8UC3), __dst(height, width, CV_8U);
+
+		throw_if(channels != 3); // Костыль
 
 		for(v = 0; v < height; v++)
 			for(u = 0; u < width; u++)
@@ -78,7 +80,7 @@ int process_opencv(const void * src, void * dst)
 		throw_null(__src);
 		throw_null(__dst);
 
-		Sobel(* __src, * __dst, -1, 1, 1);
+		* __dst = sobel(* __src);
 
 		if(__dst->channels() == 3)
 			cvtColor(* __dst, * __dst, CV_RGB2GRAY);

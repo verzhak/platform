@@ -8,7 +8,7 @@ CProcess::CProcess(const QString process_module_fname) :
 
 	throw_null(process_init_fun = (decltype(process_init_fun)) lib.resolve("process_init"));
 	throw_null(process_destroy_fun = (decltype(process_destroy_fun)) lib.resolve("process_destroy"));
-	throw_null(process_fun = (decltype(process_fun)) lib.resolve("process1"));
+	throw_null(process_memory_fun = (decltype(process_memory_fun)) lib.resolve("process_memory"));
 	throw_null(process_opencv_fun = (decltype(process_opencv_fun)) lib.resolve("process_opencv"));
 
 	throw_if((* process_init_fun)(& is_opencv_interface));
@@ -32,7 +32,7 @@ Mat CProcess::operator()(const Mat & frame)
 	{
 		dst = Mat::zeros(src.size(), CV_8U);
 
-		throw_if((* process_fun)(src.data, dst.data, src.rows, src.cols, src.channels()));
+		throw_if((* process_memory_fun)(src.data, dst.data, src.rows, src.cols, src.channels()));
 	}
 
 	return dst;

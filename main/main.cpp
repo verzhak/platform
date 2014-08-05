@@ -13,19 +13,23 @@ int main(const int argc, const char * argv[])
 	Mat src, dst;
 	QMap<QString, QVariant> metadata;
 	CConfig config(argv[1]);
-	CVideo video(config["main"]["video"].toString(), config["main"]["metadata"].toString());
-	CProcess process(config["main"]["module"].toString());
+	CVideo video(
+		QString::fromStdString(config["main"]["video"].value),
+		QString::fromStdString(config["main"]["metadata"].value));
+	CProcess process(QString::fromStdString(config["main"]["module"].value));
 	CCommand command(
-		QHostAddress(config["card"]["address"].toString()), config["card"]["port"].toUInt(),
-		QHostAddress(config["arinc"]["address"].toString()), config["arinc"]["port"].toUInt());
+		QHostAddress(QString::fromStdString(config["card"]["address"].value)), config["card"]["port"].to_uint(),
+		QHostAddress(QString::fromStdString(config["arinc"]["address"].value)), config["arinc"]["port"].to_uint());
 
-	while(video(src, metadata))
+	while(1)
 	{
+		if(! video(src, metadata))
+			break;
+
 		dst = process(src);
 
-//		command.send_image(dst);
-		command.send_orientation(metadata);
-//		command.correlation();
+		if(! command(dst, metadata))
+			break;
 
 		imshow("src", src);
 		imshow("dst", dst);
