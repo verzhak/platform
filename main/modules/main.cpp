@@ -32,47 +32,45 @@ int main(const int argc, const char * argv[])
 		throw_if(process_init(& is_opencv_interface));
 		throw_if(! is_opencv_interface);
 
-		VideoCapture video(argv[1]);
+		src = imread(argv[1], CV_LOAD_IMAGE_COLOR);
+		throw_if(src.empty());
 
-		while(video.read(src))
+		if(is_first)
 		{
-			if(is_first)
+			is_first = false;
+			height = src.rows;
+			width = src.cols;
+
+			dst_memory.create(src.size(), CV_8U);
+			src_buf.reset(new uint8_t[height * width * 3], std::default_delete<uint8_t[]>());
+			dst_buf.reset(new uint8_t[height * width], std::default_delete<uint8_t[]>());
+
+			throw_null(p_src_buf = src_buf.get());
+			throw_null(p_dst_buf = dst_buf.get());
+		}
+
+		for(v = 0; v < height; v++)
+			for(u = 0; u < width; u++)
 			{
-				is_first = false;
-				height = src.rows;
-				width = src.cols;
+				const Vec3b pixel = src.at<Vec3b>(v, u);
 
-				dst_memory.create(src.size(), CV_8U);
-				src_buf.reset(new uint8_t[height * width * 3], std::default_delete<uint8_t[]>());
-				dst_buf.reset(new uint8_t[height * width], std::default_delete<uint8_t[]>());
-
-				throw_null(p_src_buf = src_buf.get());
-				throw_null(p_dst_buf = dst_buf.get());
+				p_src_buf[(v * width + u) * 3] = pixel[0];
+				p_src_buf[(v * width + u) * 3 + 1] = pixel[1];
+				p_src_buf[(v * width + u) * 3 + 2] = pixel[2];
 			}
 
-			for(v = 0; v < height; v++)
-				for(u = 0; u < width; u++)
-				{
-					const Vec3b pixel = src.at<Vec3b>(v, u);
+		throw_if(process_memory(p_src_buf, p_dst_buf, height, width, 3)); // Можно передавать через .data, но никто не гарантирует отсутствие выравнивания
+		throw_if(process_opencv((void *) & src, (void *) & dst_opencv));
 
-					p_src_buf[(v * width + u) * 3] = pixel[0];
-					p_src_buf[(v * width + u) * 3 + 1] = pixel[1];
-					p_src_buf[(v * width + u) * 3 + 2] = pixel[2];
-				}
+		for(v = 0; v < height; v++)
+			for(u = 0; u < width; u++)
+				dst_memory.at<uint8_t>(v, u) = p_dst_buf[v * width + u];
 
-			throw_if(process_memory(p_src_buf, p_dst_buf, height, width, 3)); // Можно передавать через .data, но никто не гарантирует отсутствие выравнивания
-			throw_if(process_opencv((void *) & src, (void *) & dst_opencv));
+		imshow("source", src);
+		imshow("destination (memory)", dst_memory);
+		imshow("destination (opencv)", dst_opencv);
 
-			for(v = 0; v < height; v++)
-				for(u = 0; u < width; u++)
-					dst_memory.at<uint8_t>(v, u) = p_dst_buf[v * width + u];
-
-			imshow("source", src);
-			imshow("destination (memory)", dst_memory);
-			imshow("destination (opencv)", dst_opencv);
-
-			waitKey(40);
-		}
+		waitKey(-1);
 	}
 	catch(...)
 	{
