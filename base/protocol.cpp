@@ -21,7 +21,7 @@ else if(typeid(TYPE) == typeid(__TYPE))\
 }
 
 template<typename TYPE>
-	static void pack(TYPE * buf, const unsigned num = 1)
+void pack(TYPE * buf, const unsigned num = 1)
 {
 	#ifndef __MINGW32__
 
@@ -45,57 +45,209 @@ template<typename TYPE>
 }
 
 template<typename TYPE>
-	static void unpack(TYPE * buf, const unsigned num = 1)
+void unpack(TYPE * buf, const unsigned num = 1)
 {
-	CFile::pack<TYPE>(buf, num);
+	pack<TYPE>(buf, num);
 }
 
 // ############################################################################ 
 
-unsigned CPacket::recv_header()
+CPacket::CPacket(t_recv_fun recv_fun, t_send_fun send_fun) :
+	__recv_fun(recv_fun), __send_fun(send_fun)
 {
-	unsigned notused;
-
-	return recv_header(notused);
+	;
 }
 
-unsigned CPacket::recv_header(unsigned & ind)
+void CPacket::header_pack()
 {
-	recv_fun((void *) header, sizeof(header));
-
-	// TODO header unpack
-
-	throw_if(header.mark != CARD_MARK);
-	ind = header.ind;
-
-	return header.command;
+	pack<uint32_t>(& header.mark);
+	pack<uint32_t>(& header.command);
+	pack<uint32_t>(& header.ind);
 }
 
-void CPacket::__send(const unsigned command, const unsigned ind, const void * packet, const unsigned size)
+void CPacket::header_unpack()
+{
+	unpack<uint32_t>(& header.mark);
+	unpack<uint32_t>(& header.command);
+	unpack<uint32_t>(& header.ind);
+}
+
+void CPacket::send(const unsigned command, const unsigned ind)
 {
 	header.mark = CARD_MARK;
 	header.command = command;
 	header.ind = ind;
 
-	// TODO header_pack
+	header_pack();
 
-	send_fun((void *) & header, sizeof(header));
-	send_fun(packet, size);
+	__send_fun((void *) & header, sizeof(header));
+
+	if(command != CARD_COMMAND_NOTHING)
+	{
+		* (uint32_t *) packet = CARD_MARK;
+
+		packet_pack();
+
+		__send_fun(packet, size);
+	}
 }
 
-void CImagePacket::recv()
+unsigned CPacket::recv(CPacket ** packet, unsigned & ind)
 {
-	recv_fun((void *) data, sizeof(data));
+	unsigned command;
 
-	// TODO unpack
+	throw_null(packet);
 
-	throw_if(data.mark != CARD_MARK);
+	__recv_fun((void *) & header, sizeof(header));
+	header_unpack();
+
+	throw_if(header.mark != CARD_MARK);
+	command = header.command;
+	ind = header.ind;
+
+	switch(command)
+	{
+		case CARD_COMMAND_IMAGE:
+		{
+			* packet = new CImagePacket(__recv_fun, __send_fun);
+
+			break;
+		}
+		case CARD_COMMAND_ORIENTATION:
+		{
+			* packet = new COrientationPacket(__recv_fun, __send_fun);
+
+			break;
+		}
+		case CARD_COMMAND_CORRELATION:
+		{
+			* packet = new CCorrelationPacket(__recv_fun, __send_fun);
+
+			break;
+		}
+		case CARD_COMMAND_EXIT:
+		{
+			* packet = new CExitPacket(__recv_fun, __send_fun);
+
+			break;
+		}
+		case CARD_COMMAND_CORRELATION_RESULT:
+		{
+			* packet = new CCorrelationResultPacket(__recv_fun, __send_fun);
+
+			break;
+		}
+		case CARD_COMMAND_ARINC_DONE:
+		{
+			* packet = new CArincDonePacket(__recv_fun, __send_fun);
+
+			break;
+		}
+		case CARD_COMMAND_CORRELATION_RESULT_INFO:
+		{
+			* packet = new CCorrelationResultInfoPacket(__recv_fun, __send_fun);
+
+			break;
+		}
+		default:
+		{
+			throw_;
+		}
+	}
+
+	__recv_fun((* packet)->get_packet(), (* packet)->get_packet_size());
+	(* packet)->packet_unpack();
+
+	throw_if(* (uint32_t *) packet != CARD_MARK);
+
+	return command;
 }
 
-void CImagePacket::send(const unsigned ind)
-{
-	// TODO data pack
+// ############################################################################ 
 
-	__send(CARD_COMMAND_IMAGE, ind, (void *) & data, sizeof(data));
+void CImagePacket::packet_pack()
+{
+	pack<uint32_t>(& data.mark);
+	pack<uint32_t>(& data.height);
+	pack<uint32_t>(& data.width);
+	pack<uint32_t>(& data.block_size);
+}
+
+void CImagePacket::packet_unpack()
+{
+	unpack<uint32_t>(& data.mark);
+	unpack<uint32_t>(& data.height);
+	unpack<uint32_t>(& data.width);
+	unpack<uint32_t>(& data.block_size);
+}
+
+// ############################################################################ 
+
+void COrientationPacket::packet_pack()
+{
+	pack<uint32_t>(& data.mark);
+	pack<double>(& data.x);
+	pack<double>(& data.y);
+	pack<double>(& data.h);
+	pack<double>(& data.course);
+	pack<double>(& data.roll);
+	pack<double>(& data.pitch);
+	pack<double>(& data.aspect_x);
+	pack<double>(& data.aspect_y);
+	pack<uint32_t>(& data.coord_system);
+}
+
+void COrientationPacket::packet_unpack()
+{
+	unpack<uint32_t>(& data.mark);
+	unpack<double>(& data.x);
+	unpack<double>(& data.y);
+	unpack<double>(& data.h);
+	unpack<double>(& data.course);
+	unpack<double>(& data.roll);
+	unpack<double>(& data.pitch);
+	unpack<double>(& data.aspect_x);
+	unpack<double>(& data.aspect_y);
+	unpack<uint32_t>(& data.coord_system);
+}
+
+// ############################################################################ 
+
+void CCorrelationResultInfoPacket::packet_pack()
+{
+	pack<uint32_t>(& data.mark);
+	pack<uint32_t>(& data.result);
+	pack<uint32_t>(& data.result_num);
+}
+
+void CCorrelationResultInfoPacket::packet_unpack()
+{
+	unpack<uint32_t>(& data.mark);
+	unpack<uint32_t>(& data.result);
+	unpack<uint32_t>(& data.result_num);
+}
+
+// ############################################################################ 
+
+void CCorrelationResultPacket::packet_pack()
+{
+	pack<uint32_t>(& data.mark);
+	pack<uint32_t>(& data.ab);
+	pack<uint32_t>(& data.cd);
+	pack<uint32_t>(& data.fe);
+	pack<uint32_t>(& data.dx);
+	pack<uint32_t>(& data.dy);
+	pack<uint32_t>(& data.num);
+}
+
+void CCorrelationResultPacket::packet_unpack()
+{
+	unpack<uint32_t>(& data.mark);
+	unpack<uint32_t>(& data.ab);
+	unpack<uint32_t>(& data.cd);
+	unpack<uint32_t>(& data.fe);
+	unpack<uint32_t>(& data.dx);
+	unpack<uint32_t>(& data.dy);
+	unpack<uint32_t>(& data.num);
 }
 

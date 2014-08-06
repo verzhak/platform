@@ -24,6 +24,28 @@ CMainLoop::CMainLoop(CMap & map, CPci & pci, const int port) :
 
 	img.reset(new uint8_t[height_width], std::default_delete<uint8_t[]>());
 	throw_null(img.get());
+
+	recv_fun = [ & client_sock ](void * packet, const unsigned size)
+	{
+		const ssize_t recv_size = recv(client_sock, packet, size, 0);
+
+		// TODO
+		// if(recv_size <= 0)
+		//	return false;
+
+		throw_if(recv_size != size);
+	};
+
+	send_fun = [ & client_sock ](const void * packet, const unsigned size)
+	{
+		const ssize_t send_size = send(client_sock, packet, size, 0);
+
+		// TODO
+		// if(send_size < 0)
+		//	return false;
+
+		throw_if(send_size != size);
+	};
 }
 
 CMainLoop::~CMainLoop()
@@ -35,35 +57,8 @@ CMainLoop::~CMainLoop()
 		close(client_sock);
 }
 
-bool CMainLoop::read_packet(void * packet, const unsigned size)
-{
-	const ssize_t recv_size = recv(client_sock, packet, size, 0);
-
-	if(recv_size <= 0)
-		return false;
-
-	throw_if(recv_size != size);
-	throw_if(* ((uint32_t *) packet) != CARD_MARK);
-
-	return true;
-}
-
-bool CMainLoop::write_packet(void * packet, const unsigned size)
-{
-	const ssize_t send_size = send(client_sock, packet, size, 0);
-
-	if(send_size < 0)
-		return false;
-
-	throw_if(send_size != size);
-
-	return true;
-}
-
 void CMainLoop::run()
 {
-	SCardHeaderPacket packet;
-
 	while((client_sock = accept(server_sock, NULL, NULL)) >= 0)
 	{
 		bool is_run = true;
@@ -72,32 +67,34 @@ void CMainLoop::run()
 		{
 			try
 			{
-				if(
-					(is_run = read_packet(& packet, sizeof(packet)))
-				  )
-					switch(packet.command)
+				unsigned ind;
+				CHeaderPacket header(recv_fun, send_fun);
+				CPacket * packet;
+
+				// TODO Ссылка на указатель
+				switch(header.recv(& packet, ind))
+				{
+					case CARD_COMMAND_ORIENTATION:
 					{
-						case CARD_COMMAND_ORIENTATION:
-						{
-							orientation_ind = packet.ind;
-							orientation();
+						orientation_ind = header->ind;
+						orientation(dynamic_cast<COrientationPacket *>(packet));
 
-							break;
-						}
-						case CARD_COMMAND_CORRELATION:
-						{
-							correlation_ind = packet.ind;
-							correlation();
-
-							break;
-						}
-						case CARD_COMMAND_EXIT:
-						{
-							is_run = false;
-
-							break;
-						}
+						break;
 					}
+					case CARD_COMMAND_CORRELATION:
+					{
+						correlation_ind = header->ind;
+						correlation(dynamic_cast<CCorrelationPacket *>(packet));
+
+						break;
+					}
+					case CARD_COMMAND_EXIT:
+					{
+						is_run = false;
+
+						break;
+					}
+				}
 			}
 			catch(...)
 			{
@@ -110,15 +107,11 @@ void CMainLoop::run()
 	}
 }
 
-void CMainLoop::orientation()
+void CMainLoop::orientation(COrientationPacket * packet)
 {
 	try
 	{
-		SCardOrientationPacket orientation_packet;
-		
-		read_packet(& orientation_packet, sizeof(orientation_packet));
-
-		switch(orientation_packet.coord_system)
+		switch(packet->data.coord_system)
 		{
 			case 0:
 			{
@@ -144,14 +137,14 @@ void CMainLoop::orientation()
 			}
 		}
 
-		x = orientation_packet.x;
-		y = orientation_packet.y;
-		h = orientation_packet.h;
-		course = orientation_packet.course;
-		roll = orientation_packet.roll;
-		pitch = orientation_packet.pitch;
-		aspect_x = orientation_packet.aspect_x;
-		aspect_y = orientation_packet.aspect_y;
+		x = packet->data.x;
+		y = packet->data.y;
+		h = packet->data.h;
+		course = packet->data.course;
+		roll = packet->data.roll;
+		pitch = packet->data.pitch;
+		aspect_x = packet->data.aspect_x;
+		aspect_y = packet->data.aspect_y;
 	}
 	catch(...)
 	{
@@ -162,7 +155,7 @@ void CMainLoop::orientation()
 #include <opencv2/opencv.hpp>
 using namespace cv;
 
-void CMainLoop::correlation()
+void CMainLoop::correlation(CCorrelationPacket * packet)
 {
 	unsigned result = CARD_CORRELATION_RESULT_UNKNOWN;
 
@@ -210,23 +203,25 @@ void CMainLoop::correlation()
 	try
 	{
 		const vector<s_result> results = __pci.results();
-		SCardHeaderPacket header = { .mark = CARD_MARK, .command = CARD_COMMAND_CORRELATION_RESULT, .ind = correlation_ind };
-		SCardCorrelationResultInfoPacket info_packet = { .mark = CARD_MARK, .result = result, .result_num = results.size() };
-		SCardCorrelationResultPacket packet = { .mark = CARD_MARK };
+		CHeaderPacket header(CARD_COMMAND_CORRELATION_RESULT, correlation_ind);
+		CCorrelationResultInfoPacket info_packet;
+		CCorrelationResultPacket packet;
 
-		write_packet(& header, sizeof(header));
-		write_packet(& info_packet, sizeof(info_packet));
+		info_packet.data.result = result;
+		info_packet.data.result_num = results.size();
+
+		info_packet.send(correlation_ind);
 
 		for(auto & res : results)
 		{
-			packet.ab = res.ab;
-			packet.cd = res.cd;
-			packet.fe = res.fe;
-			packet.dx = res.dx;
-			packet.dy = res.dy;
-			packet.num = res.num;
+			packet.data.ab = res.ab;
+			packet.data.cd = res.cd;
+			packet.data.fe = res.fe;
+			packet.data.dx = res.dx;
+			packet.data.dy = res.dy;
+			packet.data.num = res.num;
 
-			write_packet(& packet, sizeof(packet));
+			packet.send(correlation_ind);
 		}
 	}
 	catch(...)

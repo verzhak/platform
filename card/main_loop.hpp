@@ -15,12 +15,11 @@ class CMainLoop
 	ECoordType coord_system;
 	CMap & __map;
 	CPci & __pci;
+	t_recv_fun recv_fun;
+	t_send_fun send_fun;
 
-	bool read_packet(void * packet, const unsigned size);
-	bool write_packet(void * packet, const unsigned size);
-
-	void orientation();
-	void correlation();
+	void orientation(COrientationPacket * packet);
+	void correlation(CCorrelationPacket * packet);
 
 	public:
 
