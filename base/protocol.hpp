@@ -23,28 +23,15 @@ typedef function<void(const void *, const unsigned)> t_send_fun;
 
 class CPacket
 {
-	t_recv_fun __recv_fun;
-	t_send_fun __send_fun;
-
-	struct __attribute__((packed))
+	struct
 	{
-		uint32_t mark;
-		uint32_t command;
-		uint32_t ind;
+		unsigned command;
+		unsigned ind;
 	} header;
 
-	void header_pack();
-	void header_unpack();
-
-	protected:
-
-		virtual void packet_pack() { header_pack(); };
-		virtual void packet_unpack() { header_unpack(); };
-		virtual inline unsigned get_command() { return CARD_COMMAND_NOTHING; };
-		virtual inline void * get_packet() { return (void *) & header; };
-		virtual inline unsigned get_packet_size() { return sizeof(header); };
-
 	public:
+
+		void send(const unsigned command, const unsigned ind);
 
 		CPacket(t_recv_fun recv_fun, t_send_fun send_fun);
 

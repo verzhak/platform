@@ -3,7 +3,7 @@
 #define ALL_HPP
 
 #include "base/all.hpp"
-#include "base/config.hpp"
+#include "base/tree.hpp"
 #include "base/protocol.hpp"
 
 #include <opencv2/opencv.hpp>

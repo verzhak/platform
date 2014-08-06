@@ -4,6 +4,8 @@
 
 #include <vector>
 #include <map>
+#include <string>
+#include <sstream>
 #include <memory>
 #include <amv/amv.hpp>
 

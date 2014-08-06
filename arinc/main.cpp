@@ -10,7 +10,7 @@ int main(int argc, char * argv[])
 
 	int ret;
 	CConfig config(argv[1]);
-	CMainLoop main_loop(argc, argv, config["arinc"]["port"].to_uint());
+	CMainLoop main_loop(argc, argv, config["arinc"]["port"].uint());
 
 	ret = main_loop.exec();
 
