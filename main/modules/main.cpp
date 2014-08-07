@@ -32,10 +32,16 @@ int main(const int argc, const char * argv[])
 		throw_if(process_init(& is_opencv_interface));
 		throw_if(! is_opencv_interface);
 
+		/*
 		VideoCapture video(argv[1]);
+		throw_if(! video.isOpened());
 
 		while(video.read(src))
 		{
+		*/
+		
+		src = imread(argv[1], -1);
+		
 			if(is_first)
 			{
 				is_first = false;
@@ -71,8 +77,9 @@ int main(const int argc, const char * argv[])
 			imshow("destination (memory)", dst_memory);
 			imshow("destination (opencv)", dst_opencv);
 
-			waitKey(40);
-		}
+			waitKey(-1);
+		
+		// }
 	}
 	catch(...)
 	{
