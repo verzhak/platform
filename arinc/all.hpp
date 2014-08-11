@@ -3,8 +3,9 @@
 #define ALL_HPP
 
 #include "base/all.hpp"
-#include "base/config.hpp"
+#include "base/tree.hpp"
 #include "base/protocol.hpp"
+#include "base/socket.hpp"
 
 #include <opencv2/opencv.hpp>
 #include <QtCore>

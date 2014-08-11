@@ -12,14 +12,15 @@ int main(const int argc, const char * argv[])
 
 	Mat src, dst;
 	QMap<QString, QVariant> metadata;
-	CConfig config(argv[1]);
+	CConfig config = CConfig::load_from_file(argv[1]);
 	CVideo video(
 		QString::fromStdString(config["main"]["video"].value),
 		QString::fromStdString(config["main"]["metadata"].value));
 	CProcess process(QString::fromStdString(config["main"]["module"].value));
 	CCommand command(
-		QHostAddress(QString::fromStdString(config["card"]["address"].value)), config["card"]["port"].to_uint(),
-		QHostAddress(QString::fromStdString(config["arinc"]["address"].value)), config["arinc"]["port"].to_uint());
+		QHostAddress(QString::fromStdString(config["card"]["address"].value)), config["card"]["port"].uint(),
+		QHostAddress(QString::fromStdString(config["arinc"]["address"].value)), config["arinc"]["port"].uint(),
+		config["main"]["block_size"].uint());
 
 	while(1)
 	{
