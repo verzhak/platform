@@ -35,18 +35,16 @@ int main(const int argc, const char * argv[])
 		src = imread(argv[1], CV_LOAD_IMAGE_COLOR);
 		throw_if(src.empty());
 		
-		src = imread(argv[1], -1);
-		
-				is_first = false;
-				height = src.rows;
-				width = src.cols;
+		is_first = false;
+		height = src.rows;
+		width = src.cols;
 
-			dst_memory.create(src.size(), CV_8U);
-			src_buf.reset(new uint8_t[height * width * 3], std::default_delete<uint8_t[]>());
-			dst_buf.reset(new uint8_t[height * width], std::default_delete<uint8_t[]>());
+		dst_memory.create(src.size(), CV_8U);
+		src_buf.reset(new uint8_t[height * width * 3], std::default_delete<uint8_t[]>());
+		dst_buf.reset(new uint8_t[height * width], std::default_delete<uint8_t[]>());
 
-			throw_null(p_src_buf = src_buf.get());
-			throw_null(p_dst_buf = dst_buf.get());
+		throw_null(p_src_buf = src_buf.get());
+		throw_null(p_dst_buf = dst_buf.get());
 
 		for(v = 0; v < height; v++)
 			for(u = 0; u < width; u++)
