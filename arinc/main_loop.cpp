@@ -31,29 +31,18 @@ void CMainLoop::error(QAbstractSocket::SocketError err)
 	}
 }
 
-void CMainLoop::read_packet(void * packet, const unsigned size)
-{
-	while(client_sock->bytesAvailable() < size)
-		client_sock->waitForReadyRead(delay);
-
-	throw_if(client_sock->read((char *) packet, size) != size);
-}
-
 void CMainLoop::command()
 {
 	try
 	{
-		SCardHeaderPacket header;
+		CQtSocket sock(* client_sock);
+		CTree packet = sock.recv();
 
-		read_packet(& header, sizeof(header));
-		throw_if(header.mark != CARD_MARK);
-
-		switch(header.command)
+		switch(packet["command"].uint())
 		{
-			case CARD_COMMAND_IMAGE:
+			case CARD_COMMAND_IMAGE_HEADER:
 			{
-				arinc_ind = header.ind;
-				image();
+				image(sock, packet);
 
 				break;
 			}
@@ -67,36 +56,40 @@ void CMainLoop::command()
 	}
 }
 
-void CMainLoop::image()
+void CMainLoop::image(CQtSocket & sock, CTree & packet)
 {
 	try
 	{
-		SCardImagePacket packet;
-
-		read_packet(& packet, sizeof(packet));
-		throw_if(packet.mark != CARD_MARK);
-
-		const unsigned block_size = packet.block_size;
-		const unsigned buf_size = packet.height * packet.width;
-		const unsigned blocks_num_1 = buf_size / block_size, last_block_size = buf_size % block_size;
-		unsigned v;
+		const unsigned current_height = packet["height"].uint(), current_width = packet["width"].uint();
+		const unsigned buf_size = current_height * current_width;
+		unsigned size, block_size;
 		uint8_t * ptr;
+		shared_ptr<uint8_t> block_buffer;
 
-		if(height != packet.height || width != packet.width)
+		ind = packet["ind"].uint();
+
+		if(height != current_height || width != current_width)
 		{
 			img.reset(new uint8_t[buf_size], std::default_delete<uint8_t[]>());
 
-			height = packet.height;
-			width = packet.width;
+			height = current_height;
+			width = current_width;
 		}
 
 		throw_null(ptr = img.get());
 
-		for(v = 0; v < blocks_num_1; v++)
-			read_packet(ptr + v * block_size, block_size);
+		for(size = 0; size < buf_size; )
+		{
+			CTree block = sock.recv();
 
-		if(last_block_size)
-			read_packet(ptr + blocks_num_1 * block_size, last_block_size);
+			throw_if(block["command"].uint() != CARD_COMMAND_IMAGE_BLOCK);
+			throw_if(block["ind"].uint() != ind);
+
+			protocol::decode_base64(block["data"].value, block_buffer, block_size);
+
+			memcpy(ptr + size, block_buffer.get(), block_size);
+			size += block_size;
+		}
 
 		emit arinc_write(img.get(), height, width);
 	}
@@ -110,9 +103,16 @@ void CMainLoop::__arinc_done()
 {
 	try
 	{
-		const SCardHeaderPacket header = { .mark = CARD_MARK, .command = CARD_COMMAND_ARINC_DONE, .ind = arinc_ind };
+		CQtSocket sock(* client_sock);
 
-		throw_if(client_sock->write((const char *) & header, sizeof(header)) != sizeof(header));
+		sock.send
+		(
+			protocol::base
+			(
+				CARD_COMMAND_ARINC_DONE,
+				ind
+			)
+		);
 	}
 	catch(...)
 	{

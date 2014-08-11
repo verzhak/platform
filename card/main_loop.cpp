@@ -24,28 +24,6 @@ CMainLoop::CMainLoop(CMap & map, CPci & pci, const int port) :
 
 	img.reset(new uint8_t[height_width], std::default_delete<uint8_t[]>());
 	throw_null(img.get());
-
-	recv_fun = [ & client_sock ](void * packet, const unsigned size)
-	{
-		const ssize_t recv_size = recv(client_sock, packet, size, 0);
-
-		// TODO
-		// if(recv_size <= 0)
-		//	return false;
-
-		throw_if(recv_size != size);
-	};
-
-	send_fun = [ & client_sock ](const void * packet, const unsigned size)
-	{
-		const ssize_t send_size = send(client_sock, packet, size, 0);
-
-		// TODO
-		// if(send_size < 0)
-		//	return false;
-
-		throw_if(send_size != size);
-	};
 }
 
 CMainLoop::~CMainLoop()
@@ -62,29 +40,25 @@ void CMainLoop::run()
 	while((client_sock = accept(server_sock, NULL, NULL)) >= 0)
 	{
 		bool is_run = true;
+		CCardSocket sock(client_sock);
 
 		while(is_run)
 		{
 			try
 			{
-				unsigned ind;
-				CHeaderPacket header(recv_fun, send_fun);
-				CPacket * packet;
+				CTree packet = sock.recv();
 
-				// TODO Ссылка на указатель
-				switch(header.recv(& packet, ind))
+				switch(packet["command"].uint())
 				{
 					case CARD_COMMAND_ORIENTATION:
 					{
-						orientation_ind = header->ind;
-						orientation(dynamic_cast<COrientationPacket *>(packet));
+						orientation(packet);
 
 						break;
 					}
 					case CARD_COMMAND_CORRELATION:
 					{
-						correlation_ind = header->ind;
-						correlation(dynamic_cast<CCorrelationPacket *>(packet));
+						correlation(packet);
 
 						break;
 					}
@@ -107,11 +81,13 @@ void CMainLoop::run()
 	}
 }
 
-void CMainLoop::orientation(COrientationPacket * packet)
+void CMainLoop::orientation(CTree & packet)
 {
 	try
 	{
-		switch(packet->data.coord_system)
+		ind = packet["ind"].uint();
+
+		switch(packet["coord_system"].uint())
 		{
 			case 0:
 			{
@@ -137,14 +113,14 @@ void CMainLoop::orientation(COrientationPacket * packet)
 			}
 		}
 
-		x = packet->data.x;
-		y = packet->data.y;
-		h = packet->data.h;
-		course = packet->data.course;
-		roll = packet->data.roll;
-		pitch = packet->data.pitch;
-		aspect_x = packet->data.aspect_x;
-		aspect_y = packet->data.aspect_y;
+		x = packet["x"].real();
+		y = packet["y"].real();
+		h = packet["h"].real();
+		course = packet["course"].real();
+		roll = packet["roll"].real();
+		pitch = packet["pitch"].real();
+		aspect_x = packet["aspect_x"].real();
+		aspect_y = packet["aspect_y"].real();
 	}
 	catch(...)
 	{
@@ -155,7 +131,7 @@ void CMainLoop::orientation(COrientationPacket * packet)
 #include <opencv2/opencv.hpp>
 using namespace cv;
 
-void CMainLoop::correlation(CCorrelationPacket * packet)
+void CMainLoop::correlation(CTree & packet)
 {
 	unsigned result = CARD_CORRELATION_RESULT_UNKNOWN;
 
@@ -168,7 +144,7 @@ void CMainLoop::correlation(CCorrelationPacket * packet)
 		unsigned v, u, w_v, w_u;
 		uint8_t * ptr_3 = img_3.get(), * ptr = img.get();
 
-		throw_if(orientation_ind != correlation_ind);
+		throw_if(ind != packet["ind"].uint());
 
 		__pci.reset();
 
@@ -203,26 +179,32 @@ void CMainLoop::correlation(CCorrelationPacket * packet)
 	try
 	{
 		const vector<s_result> results = __pci.results();
-		CHeaderPacket header(CARD_COMMAND_CORRELATION_RESULT, correlation_ind);
-		CCorrelationResultInfoPacket info_packet;
-		CCorrelationResultPacket packet;
+		CCardSocket sock(client_sock);
 
-		info_packet.data.result = result;
-		info_packet.data.result_num = results.size();
-
-		info_packet.send(correlation_ind);
+		sock.send
+		(
+			protocol::correlation_info
+			(
+				ind,
+				result,
+				results.size()
+			)
+		);
 
 		for(auto & res : results)
-		{
-			packet.data.ab = res.ab;
-			packet.data.cd = res.cd;
-			packet.data.fe = res.fe;
-			packet.data.dx = res.dx;
-			packet.data.dy = res.dy;
-			packet.data.num = res.num;
-
-			packet.send(correlation_ind);
-		}
+			sock.send
+			(
+				protocol::correlation_result
+				(
+					ind,
+					res.ab,
+					res.cd,
+					res.fe,
+					res.dx,
+					res.dy,
+					res.num
+				)
+			);
 	}
 	catch(...)
 	{

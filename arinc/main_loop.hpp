@@ -3,19 +3,19 @@
 #define MAIN_LOOP_HPP
 
 #include "all.hpp"
+#include "main/socket.hpp"
 
 class CMainLoop : public QCoreApplication
 {
 	Q_OBJECT
 
 	const unsigned delay = 1000;
-	unsigned arinc_ind, height, width;
+	unsigned ind, height, width;
 	shared_ptr<uint8_t> img;
 	QTcpServer server_sock;
 	QTcpSocket * client_sock;
 
-	void read_packet(void * packet, const unsigned size);
-	void image();
+	void image(CQtSocket & sock, CTree & packet);
 
 	public:
 

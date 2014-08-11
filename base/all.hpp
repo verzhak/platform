@@ -7,6 +7,7 @@
 #include <string>
 #include <sstream>
 #include <memory>
+#include <cstring>
 #include <amv/amv.hpp>
 
 using namespace std;

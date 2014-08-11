@@ -1,7 +1,8 @@
 
 #include "command.hpp"
 
-CCommand::CCommand(const QHostAddress card_address, const uint16_t card_port, const QHostAddress arinc_address, const uint16_t arinc_port)
+CCommand::CCommand(const QHostAddress card_address, const uint16_t card_port, const QHostAddress arinc_address, const uint16_t arinc_port, const unsigned block_size) :
+	__block_size(block_size)
 {
 	ind = 0;
 
@@ -14,42 +15,58 @@ CCommand::CCommand(const QHostAddress card_address, const uint16_t card_port, co
 
 void CCommand::send_image(const Mat & img)
 {
-	throw_if(arinc_sock.state() != QAbstractSocket::ConnectedState);
-
 	try
 	{
 		const unsigned height = img.rows, width = img.cols;
 		const unsigned buf_size = height * width;
-		const unsigned blocks_num_1 = buf_size / max_packet_size, last_block_size = buf_size % max_packet_size;
+		const unsigned blocks_num_1 = buf_size / __block_size, last_block_size = buf_size % __block_size;
 		unsigned v;
 		shared_ptr<uint8_t> buf(new uint8_t[buf_size], std::default_delete<uint8_t[]>());
 		uint8_t * ptr = buf.get();
-		SCardHeaderPacket header = { .mark = CARD_MARK, .command = CARD_COMMAND_IMAGE, .ind = ind };
-		const SCardImagePacket packet = { .mark = CARD_MARK, .height = height, .width = width, .block_size = max_packet_size };
+		CQtSocket sock(arinc_sock);
 
 		throw_null(ptr);
 
-		throw_if(arinc_sock.write((const char *) & header, sizeof(header)) != sizeof(header));
-		throw_if(! arinc_sock.waitForBytesWritten(-1));
-
-		throw_if(arinc_sock.write((const char *) & packet, sizeof(packet)) != sizeof(packet));
-		throw_if(! arinc_sock.waitForBytesWritten(-1));
+		sock.send
+		(
+			protocol::image_header
+			(
+				ind,
+				height,
+				width,
+				blocks_num_1 + ((last_block_size) ? 1 : 0)
+			)
+		);
 
 		for(v = 0; v < height; v++)
 			memcpy(ptr + v * width, img.data + img.step[0] * v, width);
 
 		for(v = 0; v < blocks_num_1; v++)
-			throw_if(arinc_sock.write((const char *) (ptr + v * max_packet_size), max_packet_size) != max_packet_size);
+			sock.send
+			(
+				protocol::image_block
+				(
+					ind,
+					protocol::encode_base64(ptr + v * __block_size, __block_size),
+					v
+				)
+			);
 
 		if(last_block_size)
-			throw_if(arinc_sock.write((const char *) (ptr + blocks_num_1 * max_packet_size), last_block_size) != last_block_size);
+			sock.send
+			(
+				protocol::image_block
+				(
+					ind,
+					protocol::encode_base64(ptr + blocks_num_1 * __block_size, last_block_size),
+					blocks_num_1
+				)
+			);
 
-		throw_if(! arinc_sock.waitForBytesWritten(-1));
-		throw_if(! arinc_sock.waitForReadyRead(arinc_delay));
+		CTree arinc_done = sock.recv();
 
-		throw_if(arinc_sock.read((char *) & header, sizeof(header)) != sizeof(header));
-		throw_if(header.mark != CARD_MARK);
-		throw_if(header.command != CARD_COMMAND_ARINC_DONE);
+		throw_if(arinc_done["command"].uint() != CARD_COMMAND_ARINC_DONE);
+		throw_if(arinc_done["ind"].uint() != ind);
 	}
 	catch(...)
 	{
@@ -59,30 +76,26 @@ void CCommand::send_image(const Mat & img)
 
 void CCommand::send_orientation(const QMap<QString, QVariant> & metadata)
 {
-	throw_if(card_sock.state() != QAbstractSocket::ConnectedState);
-
 	try
 	{
-		const SCardHeaderPacket header = { .mark = CARD_MARK, .command = CARD_COMMAND_ORIENTATION, .ind = ind };
-		const SCardOrientationPacket packet =
-		{
-			.mark = CARD_MARK, 
-			.x = metadata["x"].toDouble(),
-			.y = metadata["y"].toDouble(),
-			.h = metadata["h"].toDouble(),
-			.course = metadata["course"].toDouble(),
-			.roll = metadata["roll"].toDouble(),
-			.pitch = metadata["pitch"].toDouble(),
-			.aspect_x = metadata["aspect_x"].toDouble(),
-			.aspect_y = metadata["aspect_y"].toDouble(),
-			.coord_system = metadata["coord_system"].toUInt()
-		};
+		CQtSocket sock(card_sock);
 
-		throw_if(card_sock.write((const char *) & header, sizeof(header)) != sizeof(header));
-		throw_if(! card_sock.flush());
-
-		throw_if(card_sock.write((const char *) & packet, sizeof(packet)) != sizeof(packet));
-		throw_if(! card_sock.flush());
+		sock.send
+		(
+			protocol::orientation
+			(
+				ind,
+				metadata["x"].toDouble(),
+				metadata["y"].toDouble(),
+				metadata["h"].toDouble(),
+				metadata["course"].toDouble(),
+				metadata["roll"].toDouble(),
+				metadata["pitch"].toDouble(),
+				metadata["aspect_x"].toDouble(),
+				metadata["aspect_y"].toDouble(),
+				metadata["coord_system"].toUInt()
+			)
+		);
 	}
 	catch(...)
 	{
@@ -92,35 +105,38 @@ void CCommand::send_orientation(const QMap<QString, QVariant> & metadata)
 
 void CCommand::correlation()
 {
-	throw_if(card_sock.state() != QAbstractSocket::ConnectedState);
-
 	try
 	{
 		unsigned v;
-		SCardHeaderPacket header = { .mark = CARD_MARK, .command = CARD_COMMAND_CORRELATION, .ind = ind };
-		SCardCorrelationResultInfoPacket info_packet;
-		SCardCorrelationResultPacket packet;
+		CQtSocket sock(card_sock);
 
-		throw_if(card_sock.write((const char *) & header, sizeof(header)) != sizeof(header));
-		throw_if(! card_sock.flush());
+		sock.send
+		(
+			protocol::base
+			(
+				CARD_COMMAND_CORRELATION,
+				ind
+			)
+		);
 
-		throw_if(! card_sock.waitForReadyRead(correlation_delay));
+		CTree info = sock.recv(correlation_delay);
 
-		throw_if(card_sock.read((char *) & header, sizeof(header)) != sizeof(header));
-		throw_if(header.mark != CARD_MARK);
-		throw_if(header.command != CARD_COMMAND_CORRELATION_RESULT);
+		throw_if(info["command"].uint() != CARD_COMMAND_CORRELATION_RESULT_INFO);
+		throw_if(info["ind"].uint() != ind);
+		throw_if(info["result"].uint() == CARD_CORRELATION_RESULT_FAIL);
 
-		throw_if(card_sock.read((char *) & info_packet, sizeof(info_packet)) != sizeof(info_packet));
-		throw_if(info_packet.mark != CARD_MARK);
+		const unsigned result_num = info["result_num"].uint();
 
-		for(v = 0; v < info_packet.result_num; v++)
+		for(v = 0; v < result_num; v++)
 		{
-			throw_if(card_sock.read((char *) & packet, sizeof(packet)) != sizeof(packet));
-			throw_if(packet.mark != CARD_MARK);
+			CTree res = sock.recv();
+
+			throw_if(res["command"].uint() != CARD_COMMAND_CORRELATION_RESULT);
+			throw_if(res["ind"].uint() != ind);
 
 			printf_TODO("Correlation result %u of %u (%lf%%): ab = %u, cd = %u, fe = %u, dx = %u, dy = %u, num = %u\n",
-				(v + 1), info_packet.result_num, ((v + 1) * 100.) / info_packet.result_num,
-				packet.ab, packet.cd, packet.fe, packet.dx, packet.dy, packet.num);
+				(v + 1), info["result_num"].uint(), ((v + 1) * 100.) / info["result_num"].real(),
+				res["ab"].uint(), res["cd"].uint(), res["fe"].uint(), res["dx"].uint(), res["dy"].uint(), res["num"].uint());
 		}
 	}
 	catch(...)
