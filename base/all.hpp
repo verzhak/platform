@@ -9,8 +9,10 @@
 #include <memory>
 #include <cstring>
 #include <amv/amv.hpp>
+#include <sxf/sxf.hpp>
 
 using namespace std;
+using namespace sxf;
 
 #endif
 

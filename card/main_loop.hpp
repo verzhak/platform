@@ -4,25 +4,23 @@
 
 #include "all.hpp"
 #include "map.hpp"
-#include "pci.hpp"
 #include "socket.hpp"
 
 class CMainLoop
 {
 	int server_sock, client_sock;
 	unsigned ind;
-	shared_ptr<uint8_t> img_3, img;
 	double x, y, h, course, roll, pitch, aspect_x, aspect_y;
-	ECoordType coord_system;
-	CMap & __map;
+	CMyMap & __map;
 	CPci & __pci;
 
 	void orientation(CTree & packet);
-	void correlation(CTree & packet);
+	unsigned correlation(CTree & packet);
+	void send_correlation_result(const unsigned result);
 
 	public:
 
-		CMainLoop(CMap & map, CPci & pci, const int port);
+		CMainLoop(CMyMap & map, CPci & pci, const int port);
 		~CMainLoop();
 
 		void run();
