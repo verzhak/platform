@@ -23,7 +23,5 @@
 #include <sys/mman.h>
 #include <sched.h>
 
-using namespace std;
-
 #endif
 

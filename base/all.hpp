@@ -2,6 +2,7 @@
 #ifndef BASE_ALL_HPP
 #define BASE_ALL_HPP
 
+#include <cstdio>
 #include <vector>
 #include <map>
 #include <string>

@@ -11,24 +11,31 @@ LD = $(BIN_BASE)/mips-linux-gnu-gcc
 AR = $(BIN_BASE)/mips-linux-gnu-ar
 
 LIBS = -lm
-CFLAGS = -Wall -march=xlp -O3 -mplt -std=c++11
-LDFLAGS = -L$(BROOT)/usr/lib/ -lamv -lsxf
+CFLAGS = -Wall -march=xlp -O3 -mplt -std=gnu++11
+LDFLAGS = -L$(BROOT)/usr/lib/ -lm -lamv -lsxf -liconv
 INCLUDE_DIRS = \
-	-Wno-poison-system-directories\
-	-I. -Icard/ -I$(BROOT)/usr/include/ -I$(BROOT)/usr/include/libdrm/
+	-Wno-poison-system-directories \
+	-I. -I$(BROOT)/usr/include/ -I$(BROOT)/usr/include/sxf/ -I$(BROOT)/usr/include/libdrm/
 SRC = \
 	card/main.cpp card/main_loop.cpp card/map.cpp card/socket.cpp card/matrix.cpp \
 	base/tree.cpp base/protocol.cpp base/socket.cpp \
 	pci/pci.cpp
 
-OUTPUT_DIR = /home/amv/trash/nfs
-OUTPUT_FNAME = ${OUTPUT_DIR}/card
+PREFIX = /home/amv/trash/nfs
+BUILD_DIR = build/
+OUTPUT_FNAME = card
 
 release: clean
 
-	$(CXXC) $(CFLAGS) $(INCLUDE_DIRS) $(SRC) $(LIBS) $(LDFLAGS) -o $(OUTPUT_FNAME)
+	mkdir -p $(BUILD_DIR)
+
+	$(CXXC) $(CFLAGS) $(INCLUDE_DIRS) $(SRC) $(LIBS) $(LDFLAGS) -o $(BUILD_DIR)/$(OUTPUT_FNAME)
+
+install: release
+
+	cp $(BUILD_DIR)/$(OUTPUT_FNAME) $(PREFIX)/
 
 clean:
 
-	rm -f $(OUTPUT_FNAME)
+	rm -f $(BUILD_DIR)/$(OUTPUT_FNAME)
 
