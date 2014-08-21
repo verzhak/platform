@@ -1,5 +1,5 @@
 *.pdf
-*.swp
+*swp
 books
 .gdb_history
 build

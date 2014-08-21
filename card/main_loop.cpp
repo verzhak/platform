@@ -151,7 +151,7 @@ unsigned CMainLoop::correlation(CTree & packet)
 				p_buf_cnts += 3;
 			}
 
-			* p_buf_cnts = CONTOUR_END;
+			* ((uint32_t *) p_buf_cnts) = CONTOUR_END;
 			p_buf_cnts ++;
 		}
 

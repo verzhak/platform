@@ -5,7 +5,7 @@
 #include "base/all.hpp"
 #include "base/protocol.hpp"
 #include "base/socket.hpp"
-#include "card/combine_protocol.hpp"
+//#include "card/combine_protocol.hpp"
 #include "sxf/sxf.hpp"
 #include "sxf/file.hpp"
 #include "pci/pci.hpp"

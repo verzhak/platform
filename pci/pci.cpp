@@ -6,8 +6,8 @@ CPci::CPci(const string fname)
 	fl = -1;
 	ptr = NULL;
 
-	throw_if((fl = open(fname.c_str(), O_RDWR | O_SYNC | O_NONBLOCK)) < 0);
-	throw_null(ptr = (uint32_t *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_NONBLOCK | MAP_POPULATE, fl, 0));
+	throw_if((fl = open(fname.c_str(), O_RDWR | O_SYNC )) < 0);
+	throw_null(ptr = (uint32_t *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED , fl, 0));
 }
 
 CPci::~CPci()
@@ -21,8 +21,6 @@ CPci::~CPci()
 
 void CPci::wait(const uint32_t state)
 {
-	return;
-
 	while(ptr[REG_STATE] != state)
 		sched_yield();
 }
@@ -47,7 +45,7 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 
 	buf.reset(new uint8_t[buf_size], std::default_delete<uint8_t[]>());
 	throw_null(__ptr_8 = buf.get());
-
+	
 	for
 	(
 		c_offset = 0, m_offset = 0;
@@ -59,15 +57,14 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 		const unsigned m_real_block_size = min(matrix_buf_size - m_offset, matrix_size);
 
 		wait(STATE_WRITE, STATE_WAIT);
-		wait(STATE_WRITE, STATE_READ);
-
+		
 		if(c_real_block_size < contour_size)
 		{
 			memcpy(ptr_8 + reg_size, contour_buf + c_offset, c_real_block_size);
 			memcpy(ptr_8 + reg_size + contour_size, matrix_buf + m_offset, m_real_block_size);
 		}
 		else
-		{
+		{	
 			memcpy(__ptr_8, contour_buf + c_offset, c_real_block_size);
 			memcpy(__ptr_8 + contour_size, matrix_buf + m_offset, m_real_block_size);
 		
@@ -90,7 +87,7 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 		wait(STATE_WRITE, STATE_WAIT);
 		memcpy(ptr_8 + reg_size + contour_size, matrix_buf + m_offset, m_real_block_size);
 	}
-
+	
 	ptr[REG_STATE] = STATE_WRITE_END;
 }
 
@@ -98,7 +95,7 @@ vector<s_result> CPci::read()
 {
 	vector<s_result> res;
 
-	wait(STATE_READ);
+	// wait(STATE_READ);
 
 	// ############################################################################ 
 	// TODO
@@ -118,7 +115,7 @@ vector<s_result> CPci::read()
 
 	// ############################################################################ 
 
-	ptr[REG_STATE] = STATE_WAIT;
+	// ptr[REG_STATE] = STATE_WAIT;
 
 	return res;
 }
