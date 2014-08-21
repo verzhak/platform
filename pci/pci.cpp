@@ -57,7 +57,7 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 		const unsigned m_real_block_size = min(matrix_buf_size - m_offset, matrix_size);
 
 		wait(STATE_WRITE, STATE_WAIT);
-		
+
 		if(c_real_block_size < contour_size)
 		{
 			memcpy(ptr_8 + reg_size, contour_buf + c_offset, c_real_block_size);
