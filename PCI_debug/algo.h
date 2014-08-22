@@ -13,7 +13,7 @@
 
 class Algo
 {  
-    int file;
+    QFile file;
     uint32_t * data;
     uint32_t * data_reg;
     const unsigned contour_size = 1024, matrix_size = 960, reg_size = 64;
@@ -26,7 +26,7 @@ class Algo
 public:
     Algo();
 
-    void read(const string fileName);
+    void read(const QString fileName);
     vector<shared_ptr<uint32_t> > map_contour;
 };
 

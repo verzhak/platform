@@ -18,6 +18,7 @@ struct s_result
 #define STATE_WRITE			1
 #define STATE_READ			2
 #define STATE_WRITE_END		3
+#define STATE_READ_END		4
 
 #define REG_STATE				0
 #define REG_NUMBER_OF_CONTOUR	1

@@ -12,7 +12,6 @@ void Algo::read(const QString fileName)
     //file = open(fileName.c_str(), O_RDWR | O_SYNC ) ;
     /*if (file == -1)
         perror ("Ошибка при открытии файла");*/
-    file(fileName);
     if (!file.open(QIODevice::ReadWrite))
     {
         printf("Ошибка при открытии файла\n");

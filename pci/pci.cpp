@@ -95,7 +95,7 @@ vector<s_result> CPci::read()
 {
 	vector<s_result> res;
 
-	// wait(STATE_READ);
+	wait(STATE_READ);
 
 	// ############################################################################ 
 	// TODO
@@ -115,7 +115,7 @@ vector<s_result> CPci::read()
 
 	// ############################################################################ 
 
-	// ptr[REG_STATE] = STATE_WAIT;
+	ptr[REG_STATE] = STATE_WAIT;
 
 	return res;
 }
