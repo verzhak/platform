@@ -1,6 +1,22 @@
 
 #include "pci.hpp"
 
+unsigned & s_result::operator[](const unsigned ind)
+{
+	switch(ind)
+	{
+		case 0: return ab;
+		case 1: return cd;
+		case 2: return fe;
+		case 3: return dx;
+		case 4: return dy;
+		case 5: return num;
+		default: throw_;
+	}
+}
+
+// ############################################################################ 
+
 CPci::CPci(const string fname)
 {
 	fl = -1;
@@ -23,6 +39,14 @@ void CPci::wait(const uint32_t state)
 {
 	while(ptr[REG_STATE] != state)
 		sched_yield();
+}
+
+uint32_t CPci::wait2(const uint32_t state_1, const uint32_t state_2)
+{
+	while(ptr[REG_STATE] != state_1 || ptr[REG_STATE] != state_2)
+		sched_yield();
+
+	return ptr[REG_STATE];
 }
 
 void CPci::wait(const uint32_t state, const uint32_t from_state)
@@ -93,30 +117,29 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 
 vector<s_result> CPci::read()
 {
-	vector<s_result> res;
+	bool is_first = true;
+	unsigned number_of_results, v, ind = 0;
+	const unsigned elem_num_in_block = (contour_size + matrix_size) / 4;
+	const unsigned reg_num = reg_size / 4;
+	vector<s_result> results;
 
-	wait(STATE_READ);
-
-	// ############################################################################ 
-	// TODO
-
+	while(true)
 	{
-		s_result __res = { .ab = 1, .cd = 2, .fe = 3, .dx = 10, .dy = 11, .num = 152 };
-		res.push_back(__res);
-	}
-	{
-		s_result __res = { .ab = 4, .cd = 5, .fe = 6, .dx = 17, .dy = 27, .num = 453 };
-		res.push_back(__res);
-	}
-	{
-		s_result __res = { .ab = 7, .cd = 7, .fe = 9, .dx = 37, .dy = 34, .num = 837 };
-		res.push_back(__res);
+		if(wait2(STATE_READ, STATE_READ_END) == STATE_READ_END)
+			break;
+
+		if(is_first)
+		{
+			is_first = false;
+			number_of_results = ptr[REG_NUMBER_OF_RESULTS];
+			results.resize(number_of_results);
+		}
+
+
+		for(v = 0; v < elem_num_in_block && (ind / 6) < number_of_results; v++, ind++)
+			results[ind / 6][ind % 6] = ptr[reg_num + v];
 	}
 
-	// ############################################################################ 
-
-	ptr[REG_STATE] = STATE_WAIT;
-
-	return res;
+	return results;
 }
 

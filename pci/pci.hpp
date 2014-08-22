@@ -12,6 +12,8 @@ struct s_result
 	unsigned dx;
 	unsigned dy;
 	unsigned num;
+
+	unsigned & operator[](const unsigned ind);
 };
 
 #define STATE_WAIT			0
@@ -40,6 +42,7 @@ class CPci
 		~CPci();
 
 		void wait(const uint32_t state);
+		uint32_t wait2(const uint32_t state_1, const uint32_t state_2);
 		void wait(const uint32_t state, const uint32_t from_state);
 		void write(function<void(uint32_t *)> update_regs, const uint8_t * contour_buf, const unsigned contour_buf_size, const uint8_t * matrix_buf, const unsigned matrix_buf_size);
 		vector<s_result> read();
