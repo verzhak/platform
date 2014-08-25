@@ -1,6 +1,9 @@
 #ifndef ALL_H
 #define ALL_H
 
+#include <QFile>
+#include <QString>
+#include <QSharedMemory>
 #include <cmath>
 #include <vector>
 

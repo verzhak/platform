@@ -1,5 +1,7 @@
 
 #include "pci.hpp"
+#include <stdio.h>
+#include <iostream>
 
 unsigned & s_result::operator[](const unsigned ind)
 {
@@ -43,7 +45,7 @@ void CPci::wait(const uint32_t state)
 
 uint32_t CPci::wait(const uint32_t state_1, const uint32_t state_2)
 {
-	while(ptr[REG_STATE] != state_1 || ptr[REG_STATE] != state_2)
+	while(ptr[REG_STATE] != state_1 && ptr[REG_STATE] != state_2)
 		sched_yield();
 
 	return ptr[REG_STATE];
@@ -62,14 +64,14 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 	uint8_t * __ptr_8, * ptr_8 = (uint8_t *) ptr;
 	unsigned c_offset, m_offset;
 
-	wait(STATE_WRITE);
+	set_and_wait(STATE_WRITE, STATE_WAIT);
 	update_regs(ptr);
 
 	// ############################################################################ 
 
 	buf.reset(new uint8_t[buf_size], std::default_delete<uint8_t[]>());
 	throw_null(__ptr_8 = buf.get());
-	
+
 	for
 	(
 		c_offset = 0, m_offset = 0;
@@ -134,7 +136,11 @@ vector<s_result> CPci::read()
 
 		for(v = 0; v < elem_num_in_block && (ind / 6) < number_of_results; v++, ind++)
 			results[ind / 6][ind % 6] = ptr[reg_num + v];
+
+		ptr[REG_STATE] = STATE_WAIT;
 	}
+
+	ptr[REG_STATE] = STATE_WAIT;
 
 	return results;
 }
