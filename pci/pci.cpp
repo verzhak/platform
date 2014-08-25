@@ -41,7 +41,7 @@ void CPci::wait(const uint32_t state)
 		sched_yield();
 }
 
-uint32_t CPci::wait2(const uint32_t state_1, const uint32_t state_2)
+uint32_t CPci::wait(const uint32_t state_1, const uint32_t state_2)
 {
 	while(ptr[REG_STATE] != state_1 || ptr[REG_STATE] != state_2)
 		sched_yield();
@@ -49,7 +49,7 @@ uint32_t CPci::wait2(const uint32_t state_1, const uint32_t state_2)
 	return ptr[REG_STATE];
 }
 
-void CPci::wait(const uint32_t state, const uint32_t from_state)
+void CPci::set_and_wait(const uint32_t state, const uint32_t from_state)
 {
 	ptr[REG_STATE] = from_state;
 	wait(state);
@@ -80,7 +80,7 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 		const unsigned c_real_block_size = min(contour_buf_size - c_offset, contour_size);
 		const unsigned m_real_block_size = min(matrix_buf_size - m_offset, matrix_size);
 
-		wait(STATE_WRITE, STATE_WAIT);
+		set_and_wait(STATE_WRITE, STATE_WAIT);
 
 		if(c_real_block_size < contour_size)
 		{
@@ -100,7 +100,7 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 	{
 		const unsigned c_real_block_size = min(contour_buf_size - c_offset, contour_size);
 
-		wait(STATE_WRITE, STATE_WAIT);
+		set_and_wait(STATE_WRITE, STATE_WAIT);
 		memcpy(ptr_8 + reg_size, contour_buf + c_offset, c_real_block_size);
 	}
 
@@ -108,7 +108,7 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 	{
 		const unsigned m_real_block_size = min(matrix_buf_size - m_offset, matrix_size);
 
-		wait(STATE_WRITE, STATE_WAIT);
+		set_and_wait(STATE_WRITE, STATE_WAIT);
 		memcpy(ptr_8 + reg_size + contour_size, matrix_buf + m_offset, m_real_block_size);
 	}
 	
@@ -123,11 +123,8 @@ vector<s_result> CPci::read()
 	const unsigned reg_num = reg_size / 4;
 	vector<s_result> results;
 
-	while(true)
+	while(wait(STATE_READ, STATE_READ_END) == STATE_READ)
 	{
-		if(wait2(STATE_READ, STATE_READ_END) == STATE_READ_END)
-			break;
-
 		if(is_first)
 		{
 			is_first = false;
