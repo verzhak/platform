@@ -3,6 +3,7 @@
 
 #include <QFile>
 #include <QString>
+#include <QSharedMemory>
 #include <cmath>
 #include <vector>
 

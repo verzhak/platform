@@ -1,5 +1,7 @@
 
 #include "pci.hpp"
+#include <stdio.h>
+#include <iostream>
 
 unsigned & s_result::operator[](const unsigned ind)
 {
@@ -43,7 +45,7 @@ void CPci::wait(const uint32_t state)
 
 uint32_t CPci::wait2(const uint32_t state_1, const uint32_t state_2)
 {
-	while(ptr[REG_STATE] != state_1 || ptr[REG_STATE] != state_2)
+	while(ptr[REG_STATE] != state_1 && ptr[REG_STATE] != state_2)
 		sched_yield();
 
 	return ptr[REG_STATE];
@@ -61,15 +63,14 @@ void CPci::write(function<void(uint32_t *)> update_regs, const uint8_t * contour
 	const unsigned buf_size = contour_size + matrix_size;
 	uint8_t * __ptr_8, * ptr_8 = (uint8_t *) ptr;
 	unsigned c_offset, m_offset;
-
+	ptr[REG_STATE] = STATE_WAIT;
 	wait(STATE_WRITE);
 	update_regs(ptr);
-
 	// ############################################################################ 
 
 	buf.reset(new uint8_t[buf_size], std::default_delete<uint8_t[]>());
 	throw_null(__ptr_8 = buf.get());
-	
+
 	for
 	(
 		c_offset = 0, m_offset = 0;
@@ -122,24 +123,19 @@ vector<s_result> CPci::read()
 	const unsigned elem_num_in_block = (contour_size + matrix_size) / 4;
 	const unsigned reg_num = reg_size / 4;
 	vector<s_result> results;
-
-	while(true)
+	while(wait2(STATE_READ, STATE_READ_END) == STATE_READ)
 	{
-		if(wait2(STATE_READ, STATE_READ_END) == STATE_READ_END)
-			break;
-
 		if(is_first)
 		{
 			is_first = false;
 			number_of_results = ptr[REG_NUMBER_OF_RESULTS];
 			results.resize(number_of_results);
 		}
-
-
 		for(v = 0; v < elem_num_in_block && (ind / 6) < number_of_results; v++, ind++)
 			results[ind / 6][ind % 6] = ptr[reg_num + v];
+		ptr[REG_STATE] = STATE_WAIT;
 	}
-
+	ptr[REG_STATE] = STATE_WAIT;
 	return results;
 }
 
