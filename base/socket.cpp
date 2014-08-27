@@ -6,35 +6,35 @@ CSocket::CSocket()
 	buf = "";
 }
 
-CTree CSocket::recv()
+CXML CSocket::recv()
 {
 	const unsigned __buf_size = 1024;
 	unsigned recv_size;
 	char __buf[__buf_size];
 	string data;
 
-	while(buf.find(CTree::end_tag) == string::npos)
+	while(buf.find(protocol::end_tag) == string::npos)
 	{
 		recv_size = raw_recv((uint8_t *) __buf, __buf_size - 1);
 		__buf[recv_size] = '\0';
 		buf += __buf;
 	}
 
-	size_t from = buf.find(CTree::begin_tag);
-	size_t to = buf.find(CTree::end_tag, from + 1);
+	size_t from = buf.find(protocol::begin_tag);
+	size_t to = buf.find(protocol::end_tag, from + 1);
 
 	throw_if(from == string::npos);
 	throw_if(to == string::npos);
 	throw_if(from >= to);
 
-	to += CTree::end_tag.size();
+	to += protocol::end_tag.size();
 	data = buf.substr(from, to - from);
 	buf = buf.substr(to, buf.size() - to);
 
-	return CTree::load_from_string(data.c_str());
+	return CXML::load_from_string(data.c_str());
 }
 
-void CSocket::send(const CTree & packet)
+void CSocket::send(const CXML & packet)
 {
 	const string data = packet.pack();
 	const unsigned size = data.length();

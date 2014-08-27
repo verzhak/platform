@@ -1,9 +1,9 @@
 
 #include "protocol.hpp"
 
-CTree protocol::base(const unsigned command, const unsigned ind)
+CXML protocol::base(const unsigned command, const unsigned ind)
 {
-	CTree packet;
+	CXML packet(tag);
 
 	packet.get("command") = command;
 	packet.get("ind") = ind;
@@ -11,9 +11,9 @@ CTree protocol::base(const unsigned command, const unsigned ind)
 	return packet;
 }
 
-CTree protocol::image_header(unsigned ind, unsigned height, unsigned width, unsigned block_num)
+CXML protocol::image_header(unsigned ind, unsigned height, unsigned width, unsigned block_num)
 {
-	CTree packet;
+	CXML packet(tag);
 
 	packet.get("height") = height;
 	packet.get("width") = width;
@@ -22,9 +22,9 @@ CTree protocol::image_header(unsigned ind, unsigned height, unsigned width, unsi
 	return packet + protocol::base(CARD_COMMAND_IMAGE_HEADER, ind);
 }
 
-CTree protocol::image_block(unsigned ind, string data, unsigned block_ind)
+CXML protocol::image_block(unsigned ind, string data, unsigned block_ind)
 {
-	CTree packet;
+	CXML packet(tag);
 
 	packet.get("data") = data;
 	packet.get("block_ind") = block_ind;
@@ -32,9 +32,9 @@ CTree protocol::image_block(unsigned ind, string data, unsigned block_ind)
 	return packet + protocol::base(CARD_COMMAND_IMAGE_BLOCK, ind);
 }
 
-CTree protocol::orientation(unsigned ind, double x, double y, double h, double course, double roll, double pitch, double aspect_x, double aspect_y, unsigned coord_system)
+CXML protocol::orientation(unsigned ind, double x, double y, double h, double course, double roll, double pitch, double aspect_x, double aspect_y, unsigned coord_system)
 {
-	CTree packet;
+	CXML packet(tag);
 
 	packet.get("x") = x;
 	packet.get("y") = y;
@@ -49,9 +49,9 @@ CTree protocol::orientation(unsigned ind, double x, double y, double h, double c
 	return packet + protocol::base(CARD_COMMAND_ORIENTATION, ind);
 }
 
-CTree protocol::correlation_info(unsigned ind, unsigned result, unsigned result_num)
+CXML protocol::correlation_info(unsigned ind, unsigned result, unsigned result_num)
 {
-	CTree packet;
+	CXML packet(tag);
 
 	packet.get("result") = result;
 	packet.get("result_num") = result_num;
@@ -59,9 +59,9 @@ CTree protocol::correlation_info(unsigned ind, unsigned result, unsigned result_
 	return packet + protocol::base(CARD_COMMAND_CORRELATION_RESULT_INFO, ind);
 }
 
-CTree protocol::correlation_result(unsigned ind, unsigned ab, unsigned cd, unsigned fe, unsigned dx, unsigned dy, unsigned num)
+CXML protocol::correlation_result(unsigned ind, unsigned ab, unsigned cd, unsigned fe, unsigned dx, unsigned dy, unsigned num)
 {
-	CTree packet;
+	CXML packet(tag);
 
 	packet.get("ab") = ab;
 	packet.get("cd") = cd;

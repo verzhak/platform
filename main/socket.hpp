@@ -20,8 +20,8 @@ class CQtSocket : public CSocket
 
 		CQtSocket(QTcpSocket & sock);
 
-		CTree recv();
-		CTree recv(unsigned __delay);
+		CXML recv();
+		CXML recv(unsigned __delay);
 };
 
 #endif

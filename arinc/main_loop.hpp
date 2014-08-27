@@ -15,7 +15,7 @@ class CMainLoop : public QCoreApplication
 	QTcpServer server_sock;
 	QTcpSocket * client_sock;
 
-	void image(CQtSocket & sock, CTree & packet);
+	void image(CQtSocket & sock, CXML & packet);
 
 	public:
 

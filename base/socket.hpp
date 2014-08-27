@@ -3,7 +3,6 @@
 #define SOCKET_HPP
 
 #include "base/all.hpp"
-#include "base/tree.hpp"
 #include "base/protocol.hpp"
 
 class CSocket
@@ -19,8 +18,8 @@ class CSocket
 
 		CSocket();
 
-		virtual CTree recv();
-		virtual void send(const CTree & packet);
+		virtual CXML recv();
+		virtual void send(const CXML & packet);
 };
 
 #endif

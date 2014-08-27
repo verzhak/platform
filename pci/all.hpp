@@ -3,7 +3,6 @@
 #define ALL_HPP
 
 #include "base/all.hpp"
-#include "base/tree.hpp"
 
 #include <cmath>
 #include <vector>

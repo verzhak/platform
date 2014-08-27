@@ -14,8 +14,8 @@ class CMainLoop
 	CMyMap & __map;
 	CPci & __pci;
 
-	void orientation(CTree & packet);
-	unsigned correlation(CTree & packet);
+	void orientation(CXML & packet);
+	unsigned correlation(CXML & packet);
 	void send_correlation_result(const unsigned result);
 
 	public:

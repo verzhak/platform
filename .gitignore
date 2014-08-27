@@ -3,8 +3,9 @@
 *swp
 books
 .gdb_history
-build
+build*
 gmon.out
+*pro.user*
 doc/en
 doc/ru
 trash

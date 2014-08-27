@@ -25,15 +25,15 @@ unsigned CQtSocket::raw_send(const uint8_t * buf, const unsigned size)
 	return bytes_written;
 }
 
-CTree CQtSocket::recv()
+CXML CQtSocket::recv()
 {
 	return CSocket::recv();
 }
 
-CTree CQtSocket::recv(unsigned __delay)
+CXML CQtSocket::recv(unsigned __delay)
 {
 	delay = __delay;
-	CTree ret = CSocket::recv();
+	CXML ret = CSocket::recv();
 	delay = default_delay;
 
 	return ret;

@@ -9,7 +9,7 @@ int main(int argc, char * argv[])
 	throw_if(argc != 2);
 
 	int ret;
-	CConfig config = CConfig::load_from_file(argv[1]);
+	CXML config = CXML::load_from_file(argv[1]);
 	CMainLoop main_loop(argc, argv, config["arinc"]["port"].uint());
 
 	ret = main_loop.exec();

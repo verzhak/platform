@@ -39,7 +39,7 @@ void CMainLoop::run()
 		{
 			try
 			{
-				CTree packet = sock.recv();
+				CXML packet = sock.recv();
 
 				switch(packet["command"].uint())
 				{
@@ -74,7 +74,7 @@ void CMainLoop::run()
 	}
 }
 
-void CMainLoop::orientation(CTree & packet)
+void CMainLoop::orientation(CXML & packet)
 {
 	try
 	{
@@ -96,7 +96,7 @@ void CMainLoop::orientation(CTree & packet)
 	}
 }
 
-unsigned CMainLoop::correlation(CTree & packet)
+unsigned CMainLoop::correlation(CXML & packet)
 {
 	unsigned result = CARD_CORRELATION_RESULT_SUCCESS;
 

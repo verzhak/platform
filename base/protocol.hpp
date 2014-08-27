@@ -3,7 +3,6 @@
 #define CARD_PROTOCOL_HPP
 
 #include "base/all.hpp"
-#include "base/tree.hpp"
 
 #define CARD_COMMAND_IMAGE_HEADER				1
 #define CARD_COMMAND_IMAGE_BLOCK				2
@@ -20,15 +19,19 @@
 
 namespace protocol
 {
+	const string tag = "platform";
+	const string begin_tag = "<platform>";
+	const string end_tag = "</platform>";
+
 	string encode_base64(const uint8_t * src, const unsigned size);
 	void decode_base64(const string src, shared_ptr<uint8_t> & dst, unsigned & size);
 	
-	CTree base(const unsigned command, const unsigned ind);
-	CTree image_header(unsigned ind, unsigned height, unsigned width, unsigned block_num);
-	CTree image_block(unsigned ind, string data, unsigned block_ind);
-	CTree orientation(unsigned ind, double x, double y, double h, double course, double roll, double pitch, double aspect_x, double aspect_y, unsigned coord_system);
-	CTree correlation_info(unsigned ind, unsigned result, unsigned result_num);
-	CTree correlation_result(unsigned ind, unsigned ab, unsigned cd, unsigned fe, unsigned dx, unsigned dy, unsigned num);
+	CXML base(const unsigned command, const unsigned ind);
+	CXML image_header(unsigned ind, unsigned height, unsigned width, unsigned block_num);
+	CXML image_block(unsigned ind, string data, unsigned block_ind);
+	CXML orientation(unsigned ind, double x, double y, double h, double course, double roll, double pitch, double aspect_x, double aspect_y, unsigned coord_system);
+	CXML correlation_info(unsigned ind, unsigned result, unsigned result_num);
+	CXML correlation_result(unsigned ind, unsigned ab, unsigned cd, unsigned fe, unsigned dx, unsigned dy, unsigned num);
 };
 
 #endif

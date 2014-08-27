@@ -1,6 +1,5 @@
 
 #include "all.hpp"
-#include "base/tree.hpp"
 #include "main_loop.hpp"
 
 int main(int argc, char * argv[])
@@ -29,7 +28,7 @@ int main(int argc, char * argv[])
 	//	0x3B6CE40, // МОСТЫ НА РАЗОБЩЕНН.ОСНОВАНИЯХ = 149 (TODO)
 	};
 
-	CConfig config = CConfig::load_from_file(argv[1]);
+	CXML config = CXML::load_from_file(argv[1]);
 	CMyMap map(config["card"]["map"].value, config["card"]["height_map"].value, codes);
 	CPci pci(config["card"]["pci"]["fname"].value);
 	CMainLoop main_loop(map, pci, config["card"]["port"].uint());

@@ -36,7 +36,7 @@ void CMainLoop::command()
 	try
 	{
 		CQtSocket sock(* client_sock);
-		CTree packet = sock.recv();
+		CXML packet = sock.recv();
 
 		switch(packet["command"].uint())
 		{
@@ -56,7 +56,7 @@ void CMainLoop::command()
 	}
 }
 
-void CMainLoop::image(CQtSocket & sock, CTree & packet)
+void CMainLoop::image(CQtSocket & sock, CXML & packet)
 {
 	try
 	{
@@ -80,7 +80,7 @@ void CMainLoop::image(CQtSocket & sock, CTree & packet)
 
 		for(size = 0; size < buf_size; )
 		{
-			CTree block = sock.recv();
+			CXML block = sock.recv();
 
 			throw_if(block["command"].uint() != CARD_COMMAND_IMAGE_BLOCK);
 			throw_if(block["ind"].uint() != ind);

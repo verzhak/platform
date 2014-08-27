@@ -63,7 +63,7 @@ void CCommand::send_image(const Mat & img)
 				)
 			);
 
-		CTree arinc_done = sock.recv();
+		CXML arinc_done = sock.recv();
 
 		throw_if(arinc_done["command"].uint() != CARD_COMMAND_ARINC_DONE);
 		throw_if(arinc_done["ind"].uint() != ind);
@@ -119,7 +119,7 @@ void CCommand::correlation()
 			)
 		);
 
-		CTree info = sock.recv(correlation_delay);
+		CXML info = sock.recv(correlation_delay);
 
 		throw_if(info["command"].uint() != CARD_COMMAND_CORRELATION_RESULT_INFO);
 		throw_if(info["ind"].uint() != ind);
@@ -129,7 +129,7 @@ void CCommand::correlation()
 
 		for(v = 0; v < result_num; v++)
 		{
-			CTree res = sock.recv();
+			CXML res = sock.recv();
 
 			throw_if(res["command"].uint() != CARD_COMMAND_CORRELATION_RESULT);
 			throw_if(res["ind"].uint() != ind);

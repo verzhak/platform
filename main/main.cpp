@@ -12,7 +12,7 @@ int main(const int argc, const char * argv[])
 
 	Mat src, dst;
 	QMap<QString, QVariant> metadata;
-	CConfig config = CConfig::load_from_file(argv[1]);
+	CXML config = CXML::load_from_file(argv[1]);
 	CVideo video(
 		QString::fromStdString(config["main"]["video"].value),
 		QString::fromStdString(config["main"]["metadata"].value));
